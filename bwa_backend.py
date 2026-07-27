@@ -64,7 +64,7 @@ class RouterDecision(BaseModel):
     needs_research: Union[bool, str] = Field(..., description="Set to true or false boolean")
     mode: Literal["closed_book", "hybrid", "open_book"]
     reason: str
-    queries: List[str] = Field(default_factory=list)
+    queries: Union[List[str], str] = Field(default_factory=list)
     max_results_per_query: Union[int, str] = Field(5)
 
 
@@ -185,8 +185,7 @@ Modes:
 - open_book (needs_research=true): volatile weekly/news/"latest"/pricing/policy.
 
 If needs_research=true:
-- Output 3–10 high-signal, scoped queries.
-- For open_book weekly roundup, include queries reflecting last 7 days.
+- Output 3–8 high-signal, scoped search query strings as a JSON array of strings, e.g. ["query 1", "query 2"].
 """
 
 def router_node(state: State) -> dict:
@@ -201,6 +200,22 @@ def router_node(state: State) -> dict:
     # Safely convert boolean or string boolean to Python bool
     needs_res = str(decision.needs_research).lower() in ("true", "1", "yes")
 
+    # Safely parse queries whether returned as list or JSON string
+    raw_queries = decision.queries
+    queries = []
+    if isinstance(raw_queries, str):
+        try:
+            import json
+            parsed = json.loads(raw_queries)
+            if isinstance(parsed, list):
+                queries = [str(x) for x in parsed]
+            else:
+                queries = [q.strip(' "[]') for q in raw_queries.split(",") if q.strip()]
+        except Exception:
+            queries = [q.strip(' "[]') for q in raw_queries.split(",") if q.strip()]
+    elif isinstance(raw_queries, list):
+        queries = [str(x) for x in raw_queries]
+
     if decision.mode == "open_book":
         recency_days = 7
     elif decision.mode == "hybrid":
@@ -211,7 +226,7 @@ def router_node(state: State) -> dict:
     return {
         "needs_research": needs_res,
         "mode": decision.mode,
-        "queries": decision.queries,
+        "queries": queries,
         "recency_days": recency_days,
     }
 

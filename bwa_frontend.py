@@ -28,6 +28,9 @@ def safe_slug(title: str) -> str:
     return s or "blog"
 
 
+VALID_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
+
+
 def bundle_zip(md_text: str, md_filename: str, images_dir: Path) -> bytes:
     buf = BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
@@ -35,7 +38,7 @@ def bundle_zip(md_text: str, md_filename: str, images_dir: Path) -> bytes:
 
         if images_dir.exists() and images_dir.is_dir():
             for p in images_dir.rglob("*"):
-                if p.is_file():
+                if p.is_file() and p.suffix.lower() in VALID_IMAGE_EXTS:
                     z.write(p, arcname=str(p))
     return buf.getvalue()
 
@@ -46,7 +49,7 @@ def images_zip(images_dir: Path) -> Optional[bytes]:
     buf = BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
         for p in images_dir.rglob("*"):
-            if p.is_file():
+            if p.is_file() and p.suffix.lower() in VALID_IMAGE_EXTS:
                 z.write(p, arcname=str(p))
     return buf.getvalue()
 
@@ -443,12 +446,15 @@ if out:
                 st.json(specs)
 
             if images_dir.exists():
-                files = [p for p in images_dir.iterdir() if p.is_file()]
+                files = [p for p in images_dir.iterdir() if p.is_file() and p.suffix.lower() in VALID_IMAGE_EXTS]
                 if not files:
-                    st.warning("images/ exists but is empty.")
+                    st.info("No generated image files found in images/ folder.")
                 else:
                     for p in sorted(files):
-                        st.image(str(p), caption=p.name, use_container_width=True)
+                        try:
+                            st.image(str(p), caption=p.name)
+                        except Exception as e:
+                            st.warning(f"Unable to render `{p.name}`: {e}")
 
                 z = images_zip(images_dir)
                 if z:
