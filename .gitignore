@@ -1,0 +1,30 @@
+# Environment Variables (Contains sensitive API keys)
+.env
+.env.local
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+venv/
+.venv/
+env/
+blogproject/
+
+# Streamlit Cache & State
+.streamlit/
+
+# IDE & OS Configs
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Generated Artifacts & Logs
+*.log
+images/*.png
+images/*.jpg
+!images/.gitkeep
